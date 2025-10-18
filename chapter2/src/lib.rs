@@ -27,7 +27,7 @@ pub fn forward_substitution<const N: usize>(
     b: &SVector<f64, N>,
 ) -> SVector<f64, N> {
     assert!(
-        (0..N).all(|i| lower_triangular_matrix.column(i).iter().take(i).all(|x| *x < EPSILON)),
+        (0..N).all(|i| lower_triangular_matrix.column(i).iter().take(i).enumerate().all(|(j, x)| {dbg!(i, j); dbg!(x.abs()) < EPSILON})),
         "Matrix is not lower triangular"
     );
     
@@ -53,7 +53,7 @@ pub fn back_substitution<const N: usize>(
     b: &SVector<f64, N>,
 ) -> SVector<f64, N> {
     assert!(
-        (0..N).all(|i| upper_triangular_matrix.column(i).iter().skip(i + 1).all(|x| *x < EPSILON)),
+        (0..N).all(|i| upper_triangular_matrix.column(i).iter().skip(i + 1).all(|x| x.abs() < EPSILON)),
         "Matrix is not upper triangular"
     );
     

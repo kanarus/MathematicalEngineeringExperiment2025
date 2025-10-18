@@ -17,12 +17,22 @@ fn lu_decomposition<const N: usize>(
     // initialize `u` as `a` itself
     let mut u = a;
     
-    for k in 0..(N - 1) {
+    /*
+     * NOTE:
+     * 
+     * Our textbook illustrates this step as
+     * iterating k from 1 to **N - 1** by 1-based index,
+     * which is equivalent to iterating k from 0 to **N - 2** by 0-based index.
+     * 
+     * It's wrong. It should be iterating k from 0 to **N - 1** by 0-based index,
+     * i.e., 1 to **N** by 1-based index.
+     */
+    for k in 0..N {
         let (i, _pivot) = (k..N)
             .map(|i| (i, u[(i, k)]))
             .filter(|(_, value)| value.abs() > EPSILON)
             .max_by(|(_, a), (_, b)| f64::partial_cmp(&a.abs(), &b.abs()).expect("found NaN or Inf"))
-            .expect("Matrix is not singular");
+            .expect("Matrix is singular");
         
         if i != k {
             u.swap_rows(i, k);
@@ -37,6 +47,8 @@ fn lu_decomposition<const N: usize>(
             }
             l[(i, k)] = factor;
         }
+        l[(k, k)] = 1.0;
+        l.column_mut(k).rows_range_mut(0..k).apply(|it| *it = 0.0);
     }
     
     LUDecomposition { l, u, pi }
@@ -71,3 +83,40 @@ fn main() {
     }
 }
 
+#[cfg(test)]
+#[test]
+fn test_lu_decomposition() {
+    let a = SMatrix::<f64, 3, 3>::from_row_slice(&[
+        2.0, 1.0, -1.0,
+        -3.0, -1.0, 2.0,
+        -2.0, 1.0, 2.0,
+    ]);
+    
+    let my_decomposition = lu_decomposition(a);
+    
+    let reference_decomposition = nalgebra::Matrix::lu(a);
+
+    assert!(reference_decomposition.l().shape() == (3, 3));
+    for i in 0..3 {
+        for j in 0..3 {
+            assert!(
+                (my_decomposition.l[(i, j)] - reference_decomposition.l()[(i, j)]).abs() < EPSILON,
+                "L matrix differs at ({i}, {j}): {} vs {}",
+                my_decomposition.l[(i, j)],
+                reference_decomposition.l()[(i, j)]
+            );
+        }
+    }
+    
+    assert!(reference_decomposition.u().shape() == (3, 3));
+    for i in 0..3 {
+        for j in 0..3 {
+            assert!(
+                (my_decomposition.u[(i, j)] - reference_decomposition.u()[(i, j)]).abs() < EPSILON,
+                "U matrix differs at ({i}, {j}): {} vs {}",
+                my_decomposition.u[(i, j)],
+                reference_decomposition.u()[(i, j)]
+            );
+        }
+    }
+}

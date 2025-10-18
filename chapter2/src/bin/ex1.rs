@@ -1,9 +1,11 @@
 use chapter2::{EPSILON, Solver, back_substitution};
 use nalgebra::{DMatrix, SMatrix, SVector};
 
-fn do_gaussian_elimination(ab: &mut DMatrix<f64>) {
+fn do_gaussian_elimination_for_n_n1(ab: &mut DMatrix<f64>) {
     let n = ab.nrows();
     let m = ab.ncols();
+    
+    assert!(n + 1 == m);
     
     for k in 0..(n - 1) {
         let (i, _pivot) = (k..n)
@@ -30,7 +32,7 @@ fn solve_by_gaussian_elimination<const N: usize>(a: SMatrix<f64, N, N>, b: SVect
         if j < N { a[(i, j)] } else { b[i] }
     });
     
-    do_gaussian_elimination(&mut augmented_coefficient_matrix);
+    do_gaussian_elimination_for_n_n1(&mut augmented_coefficient_matrix);
     
     back_substitution(
         &SMatrix::<_, N, N>::from_fn(|i, j| augmented_coefficient_matrix[(i, j)]),
@@ -64,7 +66,7 @@ fn test_do_gaussian_elimination() {
         -2.0, 1.0, 2.0, -3.0,
     ]);
     
-    do_gaussian_elimination(&mut ab);
+    do_gaussian_elimination_for_n_n1(&mut ab);
     
     dbg!(ab.as_slice());
     
