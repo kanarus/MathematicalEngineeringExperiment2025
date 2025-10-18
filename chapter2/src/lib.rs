@@ -1,20 +1,6 @@
-use nalgebra::{DMatrix, DVector, SMatrix, SVector};
+use nalgebra::{SMatrix, SVector};
 
 pub const EPSILON: f64 = 1e-10;
-
-pub const RANDOM_RANGE: std::ops::RangeInclusive<f64> = -1.0..=1.0;
-
-pub fn reference_solution<const N: usize>(
-    a: &SMatrix<f64, N, N>,
-    b: &SVector<f64, N>,
-) -> DVector<f64> {
-    DMatrix::from_fn(N, N, |i, j| a[(i, j)])
-        .lu()
-        .solve(&DMatrix::from_column_slice(N, 1, b.as_slice()))
-        .unwrap()
-        .column(0)
-        .into()
-}
 
 /// Solve Ay = b by forward substitution:
 /// 
@@ -68,44 +54,51 @@ pub fn back_substitution<const N: usize>(
     x
 }
 
-pub struct Solver<const N: usize>(
-    fn(SMatrix<f64, N, N>, SVector<f64, N>) -> SVector<f64, N>,
-);
-
 #[derive(Debug)]
-pub struct ExperimentResult<const N: usize> {
-    pub my_solution: SVector<f64, N>,
-    pub reference_solution: DVector<f64>,
+pub struct ExperimentResult<Solution> {
+    pub solution: Solution,
+    pub reference_solution: Solution,
     pub residual_norm: f64,
     pub relative_error: f64,
     pub elapsed: std::time::Duration,
 }
 
-impl<const N: usize> Solver<N> {
+pub struct EquationSolver<const N: usize>(
+    fn(SMatrix<f64, N, N>, SVector<f64, N>) -> SVector<f64, N>,
+);
+
+impl<const N: usize> EquationSolver<N> {
     pub fn new(
         f: fn(SMatrix<f64, N, N>, SVector<f64, N>) -> SVector<f64, N>,
     ) -> Self {
         Self(f)
     }
     
-    pub fn experiment_randomly(&self) -> ExperimentResult<N> {
+    pub fn experiment_randomly(&self) -> ExperimentResult<SVector<f64, N>> {
         use rand::{Rng, rng};
-        
+        const RANDOM_RANGE: std::ops::RangeInclusive<f64> = -1.0..=1.0;
+
         let a = SMatrix::<f64, N, N>::from_fn(|_, _| rng().random_range(RANDOM_RANGE));
         let b = SVector::<f64, N>::from_fn(|_, _| rng().random_range(RANDOM_RANGE));    
         
-        let (my_solution, elapsed) = {
+        let (solution, elapsed) = {
             let t = std::time::Instant::now();
             ((self.0)(a, b), t.elapsed())
         };
         
-        let reference_solution = reference_solution(&a, &b);
+        let reference_solution = {
+            let view = nalgebra::DMatrix::from_column_slice(N, N, a.as_slice())
+                .lu()
+                .solve(&b)
+                .unwrap();
+            SVector::<f64, N>::from_column_slice(view.as_slice())
+        };
         
-        let residual_norm = (b - a * my_solution).norm();
-        let relative_error = (my_solution - &reference_solution).norm() / reference_solution.norm();
+        let residual_norm = (b - a * solution).norm();
+        let relative_error = (solution - &reference_solution).norm() / reference_solution.norm();
         
         ExperimentResult {
-            my_solution,
+            solution,
             reference_solution,
             residual_norm,
             relative_error,
