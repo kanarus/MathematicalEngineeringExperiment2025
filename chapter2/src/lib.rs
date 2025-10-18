@@ -1,5 +1,9 @@
 use nalgebra::{DMatrix, DVector, SMatrix, SVector};
 
+pub const EPSILON: f64 = 1e-10;
+
+pub const RANDOM_RANGE: std::ops::RangeInclusive<f64> = -1.0..=1.0;
+
 pub fn reference_solution<const N: usize>(
     a: &SMatrix<f64, N, N>,
     b: &SVector<f64, N>,
@@ -23,7 +27,7 @@ pub fn forward_substitution<const N: usize>(
     b: &SVector<f64, N>,
 ) -> SVector<f64, N> {
     assert!(
-        (0..N).all(|i| lower_triangular_matrix.column(i).iter().take(i).all(|&x| x == 0.0)),
+        (0..N).all(|i| lower_triangular_matrix.column(i).iter().take(i).all(|x| *x < EPSILON)),
         "Matrix is not lower triangular"
     );
     
@@ -49,7 +53,7 @@ pub fn back_substitution<const N: usize>(
     b: &SVector<f64, N>,
 ) -> SVector<f64, N> {
     assert!(
-        (0..N).all(|i| upper_triangular_matrix.column(i).iter().skip(i + 1).all(|&x| x == 0.0)),
+        (0..N).all(|i| upper_triangular_matrix.column(i).iter().skip(i + 1).all(|x| *x < EPSILON)),
         "Matrix is not upper triangular"
     );
     
@@ -87,12 +91,12 @@ impl<const N: usize> Solver<N> {
     pub fn experiment_randomly(&self) -> ExperimentResult<N> {
         use rand::{Rng, rng};
         
-        let a = SMatrix::<f64, N, N>::from_fn(|_, _| rng().random_range(-1.0..=1.0));
-        let b = SVector::<f64, N>::from_fn(|_, _| rng().random_range(-1.0..=1.0));    
+        let a = SMatrix::<f64, N, N>::from_fn(|_, _| rng().random_range(RANDOM_RANGE));
+        let b = SVector::<f64, N>::from_fn(|_, _| rng().random_range(RANDOM_RANGE));    
         
         let (my_solution, elapsed) = {
             let t = std::time::Instant::now();
-            (self.0(a, b), t.elapsed())
+            ((self.0)(a, b), t.elapsed())
         };
         
         let reference_solution = reference_solution(&a, &b);

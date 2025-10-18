@@ -1,5 +1,5 @@
-use chapter2::{Solver, forward_substitution, back_substitution};
-use nalgebra::{DMatrix, SMatrix, SVector};
+use chapter2::{EPSILON, Solver, forward_substitution, back_substitution};
+use nalgebra::{SMatrix, SVector};
 
 struct LUDecomposition<const N: usize> {
     l: SMatrix<f64, N, N>,
@@ -18,7 +18,25 @@ fn lu_decomposition<const N: usize>(
     let mut u = a;
     
     for k in 0..(N - 1) {
+        let (i, _pivot) = (k..N)
+            .map(|i| (i, u[(i, k)]))
+            .filter(|(_, value)| value.abs() > EPSILON)
+            .max_by(|(_, a), (_, b)| f64::partial_cmp(&a.abs(), &b.abs()).expect("found NaN or Inf"))
+            .expect("Matrix is not singular");
         
+        if i != k {
+            u.swap_rows(i, k);
+            l.swap_rows(i, k);
+            pi.swap(i, k);
+        }
+        
+        for i in (k + 1)..N {
+            let factor = u[(i, k)] / u[(k, k)];
+            for j in k..N {
+                u[(i, j)] -= factor * u[(k, j)];
+            }
+            l[(i, k)] = factor;
+        }
     }
     
     LUDecomposition { l, u, pi }
