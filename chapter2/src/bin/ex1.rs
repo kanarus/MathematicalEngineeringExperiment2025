@@ -1,4 +1,4 @@
-use chapter2::{EPSILON, EquationSolver, back_substitution};
+use chapter2::{EPSILON, EquationSolver, EquationErrors, back_substitution};
 use nalgebra::{DMatrix, SMatrix, SVector};
 
 fn do_gaussian_elimination_for_n_n1(ab: &mut DMatrix<f64>) {
@@ -40,48 +40,45 @@ fn solve_by_gaussian_elimination<const N: usize>(a: SMatrix<f64, N, N>, b: SVect
     )
 }
 
-fn experiment<const N: usize>() -> chapter2::ExperimentResult<SVector<f64, N>> {
+fn experiment<const N: usize>() -> chapter2::ExperimentResult<SVector<f64, N>, EquationErrors> {
     EquationSolver::new(solve_by_gaussian_elimination).experiment_randomly()
 }
 
 fn main() {
     for _ in 0..100 {
-        // let ExperimentResult {
-        //     my_solution,
-        //     reference_solution,
-        //     residual_norm,
-        //     relative_error,
-        //     elapsed,
-        // } =
         dbg!(experiment::<100>());
     }
 }
 
 #[cfg(test)]
-#[test]
-fn test_do_gaussian_elimination() {
-    let mut ab = DMatrix::from_row_slice(3, 4, &[
-        2.0, 1.0, -1.0, 8.0,
-        -3.0, -1.0, 2.0, -11.0,
-        -2.0, 1.0, 2.0, -3.0,
-    ]);
+mod tests {
+    use super::*;
     
-    do_gaussian_elimination_for_n_n1(&mut ab);
-    
-    dbg!(ab.as_slice());
-    
-    let expected = DMatrix::from_row_slice(3, 4, &[
-        -3.0, -1.0, 2.0, -11.0,
-        0.0, 5./3., 2./3., 13./3.,
-        0.0, 0.0, 1./5., -1./5.,
-    ]);
-    
-    for i in 0..3 {
-        for j in 0..4 {
-            assert!(
-                (ab[(i, j)] - expected[(i, j)]).abs() < EPSILON,
-                "ab[{i}, {j}] = {}, expected[{i}, {j}] = {}", ab[(i, j)], expected[(i, j)]
-            );
+    #[test]
+    fn test_do_gaussian_elimination() {
+        let mut ab = DMatrix::from_row_slice(3, 4, &[
+            2.0, 1.0, -1.0, 8.0,
+            -3.0, -1.0, 2.0, -11.0,
+            -2.0, 1.0, 2.0, -3.0,
+        ]);
+        
+        do_gaussian_elimination_for_n_n1(&mut ab);
+        
+        dbg!(ab.as_slice());
+        
+        let expected = DMatrix::from_row_slice(3, 4, &[
+            -3.0, -1.0, 2.0, -11.0,
+            0.0, 5./3., 2./3., 13./3.,
+            0.0, 0.0, 1./5., -1./5.,
+        ]);
+        
+        for i in 0..3 {
+            for j in 0..4 {
+                assert!(
+                    (ab[(i, j)] - expected[(i, j)]).abs() < EPSILON,
+                    "ab[{i}, {j}] = {}, expected[{i}, {j}] = {}", ab[(i, j)], expected[(i, j)]
+                );
+            }
         }
     }
 }

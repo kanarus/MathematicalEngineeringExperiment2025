@@ -1,4 +1,4 @@
-use chapter2::{EPSILON, EquationSolver, forward_substitution, back_substitution};
+use chapter2::{EPSILON, EquationSolver, EquationErrors, forward_substitution, back_substitution};
 use nalgebra::{SMatrix, SVector};
 
 struct LUDecomposition<const N: usize> {
@@ -66,57 +66,54 @@ fn solve_by_lu_decomposition<const N: usize>(
     back_substitution(&u, &y)
 }
 
-fn experiment<const N: usize>() -> chapter2::ExperimentResult<SVector<f64, N>> {
+fn experiment<const N: usize>() -> chapter2::ExperimentResult<SVector<f64, N>, EquationErrors> {
     EquationSolver::new(solve_by_lu_decomposition).experiment_randomly()
 }
 
 fn main() {
     for _ in 0..100 {
-        // let ExperimentResult {
-        //     my_solution,
-        //     reference_solution,
-        //     residual_norm,
-        //     relative_error,
-        //     elapsed,
-        // } =
         dbg!(experiment::<100>());
     }
 }
 
 #[cfg(test)]
-#[test]
-fn test_lu_decomposition() {
-    let a = SMatrix::<f64, 3, 3>::from_row_slice(&[
-        2.0, 1.0, -1.0,
-        -3.0, -1.0, 2.0,
-        -2.0, 1.0, 2.0,
-    ]);
+mod tests {
+    use super::*;
     
-    let my_decomposition = lu_decomposition(a);
-    
-    let reference_decomposition = nalgebra::Matrix::lu(a);
-
-    assert!(reference_decomposition.l().shape() == (3, 3));
-    for i in 0..3 {
-        for j in 0..3 {
-            assert!(
-                (my_decomposition.l[(i, j)] - reference_decomposition.l()[(i, j)]).abs() < EPSILON,
-                "L matrix differs at ({i}, {j}): {} vs {}",
-                my_decomposition.l[(i, j)],
-                reference_decomposition.l()[(i, j)]
-            );
+    #[test]
+    fn test_lu_decomposition() {
+        let a = SMatrix::<f64, 3, 3>::from_row_slice(&[
+            2.0, 1.0, -1.0,
+            -3.0, -1.0, 2.0,
+            -2.0, 1.0, 2.0,
+        ]);
+        
+        let my_decomposition = lu_decomposition(a);
+        
+        let reference_decomposition = nalgebra::Matrix::lu(a);
+        
+        assert!(reference_decomposition.l().shape() == (3, 3));
+        for i in 0..3 {
+            for j in 0..3 {
+                assert!(
+                    (my_decomposition.l[(i, j)] - reference_decomposition.l()[(i, j)]).abs() < EPSILON,
+                    "L matrix differs at ({i}, {j}): {} vs {}",
+                    my_decomposition.l[(i, j)],
+                    reference_decomposition.l()[(i, j)]
+                );
+            }
         }
-    }
-    
-    assert!(reference_decomposition.u().shape() == (3, 3));
-    for i in 0..3 {
-        for j in 0..3 {
-            assert!(
-                (my_decomposition.u[(i, j)] - reference_decomposition.u()[(i, j)]).abs() < EPSILON,
-                "U matrix differs at ({i}, {j}): {} vs {}",
-                my_decomposition.u[(i, j)],
-                reference_decomposition.u()[(i, j)]
-            );
+        
+        assert!(reference_decomposition.u().shape() == (3, 3));
+        for i in 0..3 {
+            for j in 0..3 {
+                assert!(
+                    (my_decomposition.u[(i, j)] - reference_decomposition.u()[(i, j)]).abs() < EPSILON,
+                    "U matrix differs at ({i}, {j}): {} vs {}",
+                    my_decomposition.u[(i, j)],
+                    reference_decomposition.u()[(i, j)]
+                );
+            }
         }
     }
 }
