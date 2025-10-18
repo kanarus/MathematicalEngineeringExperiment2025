@@ -192,3 +192,14 @@ impl<const N: usize> DominantEigenvalueSolver<N> {
         }
     }
 }
+
+pub struct AllEigenvaluesSolver<const N: usize> {
+    f: fn(SMatrix<f64, N, N>) -> AllEigenvaluesSolution<N>,
+}
+
+#[derive(Debug)]
+pub struct AllEigenvaluesSolution<const N: usize> {
+    pub eigenvalues: SVector<f64, N>,
+    pub eigenvectors: SMatrix<f64, N, N>,
+    pub iteration_count: usize,
+}
