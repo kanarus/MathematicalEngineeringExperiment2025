@@ -1,9 +1,8 @@
-use chapter2::{DominantEigenvalueSolver, DominantEigenvalueSolution};
+use chapter2::{EPSILON, DominantEigenvalueSolver, DominantEigenvalueSolution};
 use nalgebra::{SMatrix, SVector};
 
 fn solve_by_power_iteration<const N: usize>(a: SMatrix<f64, N, N>) -> DominantEigenvalueSolution<N> {
     const MAX_ITERATIONS: usize = 100_000;
-    const CONVERGENCE_THRESHOLD: f64 = 1e-6;
     
     let mut mu = Vec::<f64>::new();
     let mut x_k = SVector::<f64, N>::from_element(1.0);
@@ -17,7 +16,7 @@ fn solve_by_power_iteration<const N: usize>(a: SMatrix<f64, N, N>) -> DominantEi
             .expect("Vector is zero");
         
         let mu_k = y_k[i] / x_k[i];
-        if mu.last().is_some_and(|it| (it - mu_k).abs() < CONVERGENCE_THRESHOLD) {
+        if mu.last().is_some_and(|it| (it.abs() - mu_k.abs()).abs() < EPSILON) {
             return DominantEigenvalueSolution {
                 eigenvalue: mu_k,
                 eigenvector: x_k,

@@ -187,8 +187,8 @@ impl<const N: usize> DominantEigenvalueSolver<N> {
             elapsed,
             reference_solution: (reference_eigenvalue, reference_eigenvector),
             eigenvalue_residual_norm: (eigenvalue * eigenvector - a * eigenvector).norm(),
-            eigenvalue_relative_error: (eigenvalue.abs() - reference_eigenvalue.abs()).abs() / reference_eigenvalue.abs(),
-            eigenvector_relative_error: (eigenvector.abs() - reference_eigenvector.abs()).norm() / reference_eigenvector.norm(),
+            eigenvalue_relative_error: (eigenvalue - reference_eigenvalue).abs() / reference_eigenvalue.abs(),
+            eigenvector_relative_error: (eigenvector - reference_eigenvector).norm() / reference_eigenvector.norm(),
         }
     }
 }
