@@ -1,4 +1,4 @@
-use chapter2::{EPSILON, EquationSolver, EquationErrors, forward_substitution, back_substitution};
+use chapter2::{EPSILON, EquationSolver, forward_substitution, back_substitution};
 use nalgebra::{SMatrix, SVector};
 
 struct LUDecomposition<const N: usize> {
@@ -66,13 +66,11 @@ fn solve_by_lu_decomposition<const N: usize>(
     back_substitution(&u, &y)
 }
 
-fn experiment<const N: usize>() -> chapter2::ExperimentResult<SVector<f64, N>, EquationErrors> {
-    EquationSolver::new(solve_by_lu_decomposition).experiment_randomly()
-}
-
 fn main() {
+    let solver = EquationSolver::new(solve_by_lu_decomposition::<100>);
+    
     for _ in 0..100 {
-        dbg!(experiment::<100>());
+        dbg!(solver.experiment_randomly());
     }
 }
 

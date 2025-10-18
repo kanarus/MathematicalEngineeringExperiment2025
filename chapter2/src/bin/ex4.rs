@@ -1,12 +1,13 @@
-use chapter2::{EPSILON, FirstEigenvalueSolver, EigenvalueErrors};
+use chapter2::{DominantEigenvalueSolver, DominantEigenvalueSolution};
 use nalgebra::{SMatrix, SVector};
 
-fn solve_by_power_iteration<const N: usize>(a: SMatrix<f64, N, N>) -> (f64, SVector<f64, N>) {
+fn solve_by_power_iteration<const N: usize>(a: SMatrix<f64, N, N>) -> DominantEigenvalueSolution<N> {
     const MAX_ITERATIONS: usize = 100_000;
+    const CONVERGENCE_THRESHOLD: f64 = 1e-6;
     
     let mut mu = Vec::<f64>::new();
-    let mut x_k = SVector::<f64, N>::from_fn(|_, _| 1.0);
-    for _ in 0..MAX_ITERATIONS {
+    let mut x_k = SVector::<f64, N>::from_element(1.0);
+    for count in 1..MAX_ITERATIONS {
         let y_k = a * x_k;
         
         let (i, _max_abs) = x_k
@@ -16,8 +17,12 @@ fn solve_by_power_iteration<const N: usize>(a: SMatrix<f64, N, N>) -> (f64, SVec
             .expect("Vector is zero");
         
         let mu_k = y_k[i] / x_k[i];
-        if mu.last().is_some_and(|mu_prev| (mu_k - mu_prev).abs() < EPSILON) {
-            return (mu_k, x_k);
+        if mu.last().is_some_and(|it| (it - mu_k).abs() < CONVERGENCE_THRESHOLD) {
+            return DominantEigenvalueSolution {
+                eigenvalue: mu_k,
+                eigenvector: x_k,
+                iteration_count: count,
+            };
         }
         
         x_k = y_k / y_k.norm();
@@ -27,17 +32,31 @@ fn solve_by_power_iteration<const N: usize>(a: SMatrix<f64, N, N>) -> (f64, SVec
     panic!("`mu` seems to diverge");
 }
 
-fn experiment<const N: usize>() -> chapter2::ExperimentResult<(f64, SVector<f64, N>), EigenvalueErrors> {
-    FirstEigenvalueSolver::new(solve_by_power_iteration).experiment_randomly()
-}
-
 fn main() {
+    let solver = DominantEigenvalueSolver::new(solve_by_power_iteration::<100>);
+    
     for _ in 0..100 {
-        dbg!(experiment::<100>());
+        dbg!(solver.experiment_randomly());
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    
+    #[test]
+    fn test_solve_by_power_iteration() {
+        let a = SMatrix::<f64, 3, 3>::from_row_slice(&[
+            2.0, 1.0, 0.0,
+            1.0, 2.0, 1.0,
+            0.0, 1.0, 2.0,
+        ]);
+        
+        let solution = dbg!(solve_by_power_iteration(a));
+        
+        assert!((solution.eigenvalue - (f64::sqrt(2.) + 2.)).abs() < EPSILON);
+        assert!((solution.eigenvector.normalize() - SVector::<_, 3>::from_column_slice(&[
+            1., f64::sqrt(2.), 1.
+        ]).normalize()).norm() < EPSILON);
+    }
 }

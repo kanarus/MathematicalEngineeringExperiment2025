@@ -1,4 +1,4 @@
-use chapter2::{EPSILON, EquationSolver, EquationErrors, back_substitution};
+use chapter2::{EPSILON, EquationSolver, back_substitution};
 use nalgebra::{DMatrix, SMatrix, SVector};
 
 fn do_gaussian_elimination_for_n_n1(ab: &mut DMatrix<f64>) {
@@ -40,13 +40,11 @@ fn solve_by_gaussian_elimination<const N: usize>(a: SMatrix<f64, N, N>, b: SVect
     )
 }
 
-fn experiment<const N: usize>() -> chapter2::ExperimentResult<SVector<f64, N>, EquationErrors> {
-    EquationSolver::new(solve_by_gaussian_elimination).experiment_randomly()
-}
-
 fn main() {
+    let solver = EquationSolver::new(solve_by_gaussian_elimination::<100>);
+    
     for _ in 0..100 {
-        dbg!(experiment::<100>());
+        dbg!(solver.experiment_randomly());
     }
 }
 
