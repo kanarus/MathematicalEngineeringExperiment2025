@@ -70,9 +70,9 @@ fn plot_100_experiments<const N: usize>(solver: EquationSolver<N>) -> Result<(),
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<100>))?;
-    // plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<200>))?;
-    // plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<400>))?;
-    // plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<800>))?;
+    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<200>))?;
+    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<400>))?;
+    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<800>))?;
     Ok(())
 }
 
