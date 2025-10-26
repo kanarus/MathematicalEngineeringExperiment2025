@@ -1,20 +1,24 @@
-use plotters::{drawing::IntoDrawingArea, style::{IntoFont, BLUE, WHITE}, coord::ranged1d::ValueFormatter};
-use plotters::prelude::{SVGBackend, IntoLogRange, BindKeyPoints, Ranged};
+use plotters::drawing::IntoDrawingArea;
+use plotters::style::{IntoFont, BLUE, RED, WHITE};
+use plotters::coord::ranged1d::{AsRangedCoord, ValueFormatter};
+use plotters::series::{PointSeries, DashedLineSeries};
+use plotters::prelude::{SVGBackend, Circle};
+pub use plotters::prelude::{IntoLogRange, BindKeyPoints};
 
-pub struct Plotter<Y: Ranged<ValueType = f64> + ValueFormatter<f64>> {
+pub struct Plotter<Y: AsRangedCoord<Value = f64>> {
     caption: String,
     y_desc: String,
     y_coord: Y,
     data: Vec<[f64; 100]>,
 }
 
-pub struct PlotterInit<Y: Ranged<ValueType = f64> + ValueFormatter<f64>> {
+pub struct PlotterInit<Y: AsRangedCoord<Value = f64>> {
     pub caption: String,
     pub y_desc: &'static str,
     pub y_coord: Y,
 }
 
-impl<Y: Ranged<ValueType = f64> + ValueFormatter<f64>> Plotter<Y> {
+impl<Y: AsRangedCoord<Value = f64>> Plotter<Y> {
     pub fn init(init: PlotterInit<Y>) -> Self {
         Self {
             caption: init.caption,
@@ -25,17 +29,20 @@ impl<Y: Ranged<ValueType = f64> + ValueFormatter<f64>> Plotter<Y> {
     }
 }
 
-impl<Y: Ranged<ValueType = f64> + ValueFormatter<f64>> Plotter<Y> {
+impl<Y: AsRangedCoord<Value = f64>> Plotter<Y> {
     pub fn plot(&mut self, values: [f64; 100]) {
         self.data.push(values);
     }
     
-    pub fn write<const N: usize>(self, path: impl AsRef<std::path::Path>) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn write_into(self, path: impl AsRef<std::path::Path>) -> Result<(), Box<dyn std::error::Error>>
+    where
+        <Y as AsRangedCoord>::CoordDescType: ValueFormatter<<Y as AsRangedCoord>::Value>,
+    {
         let root = SVGBackend::new(&path, (800, 600)).into_drawing_area();
         root.fill(&WHITE)?;
         
         let mut chart = plotters::chart::ChartBuilder::on(&root)
-            .caption(self.caption, ("sans-serif", 20).into_font())
+            .caption(self.caption + " [点線は平均値]", ("sans-serif", 20).into_font())
             .margin(10)
             .x_label_area_size(40)
             .y_label_area_size(40)
@@ -52,17 +59,23 @@ impl<Y: Ranged<ValueType = f64> + ValueFormatter<f64>> Plotter<Y> {
             .label_style(("sans-serif", 16).into_font())
             .draw()?;
         
-        // chart.draw_series(
-        //     stats.enumerate().map(|(i, stat)| {
-        //         plotters::prelude::Circle::new(
-        //             (i as i32, stat.residual_norm),
-        //             3,
-        //             BLUE.filled(),
-        //         )
-        //     })
-        // )?;
+        for values in self.data {
+            let average = values.iter().copied().sum::<f64>() / (values.len() as f64);
+            chart.draw_series(DashedLineSeries::new(
+                (0..100).map(|i| (i, average)),
+                2,
+                1,
+                RED.into(),
+            ))?;
+            chart.draw_series(PointSeries::<_, _, Circle<(i32, f64), i32>, _>::new(
+                (0..100).map(|i| (i, values[i as usize])),
+                2,
+                BLUE
+            ))?;
+        }
         
         root.present()?;
+        
         Ok(())
     }
     

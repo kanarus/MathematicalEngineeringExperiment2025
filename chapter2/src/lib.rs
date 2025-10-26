@@ -5,6 +5,7 @@ mod matrix;
 mod plot;
 
 pub use matrix::{Matrix, Vector};
+pub use plot::{Plotter, PlotterInit, IntoLogRange, BindKeyPoints};
 
 pub const EPSILON: f64 = 1e-10;
 
@@ -87,16 +88,6 @@ pub struct EquationExperimentStat<const N: usize> {
     pub residual_norm: f64,
     pub relative_error: f64,
 }
-
-type V100 = Vector<100>;
-type V200 = Vector<200>;
-type V400 = Vector<300>;
-type V800 = Vector<400>;
-
-type X100 = EquationExperimentStat<100>;
-type X200 = EquationExperimentStat<200>;
-type X400 = EquationExperimentStat<300>;
-type X800 = EquationExperimentStat<400>;
 
 impl<const N: usize> EquationSolver<N> {
     /// `f: (A, b) -> x` should solve the equation `Ax = b`
@@ -238,7 +229,7 @@ impl<const N: usize> DominantEigenvalueSolver<N> {
 }
 
 pub struct AllEigenvaluesSolver<const N: usize> {
-    f: fn(Matrix<N, N>) -> AllEigenvaluesSolution<N>,
+    f: fn(&Matrix<N, N>) -> AllEigenvaluesSolution<N>,
 }
 
 #[derive(Debug)]

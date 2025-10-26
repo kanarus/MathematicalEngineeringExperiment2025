@@ -41,43 +41,37 @@ fn solve_by_gaussian_elimination<const N: usize>(a: &Matrix<N, N>, b: &Vector<N>
 }
 
 fn plot_100_experiments<const N: usize>(solver: EquationSolver<N>) -> Result<(), Box<dyn std::error::Error>> {
-
-    let stats = (0..100)
+    use chapter2::{Plotter, PlotterInit, IntoLogRange as _, BindKeyPoints as _};
+    
+    let stats: [EquationExperimentStat<N>; 100] = (0..100)
         .map(|_| dbg!(solver.experiment_randomly()))
-        .collect::<Vec<_>>();
-
-//     let residual_norm_plot_name = format!("plot/ex1/n{N}-residual_norm.svg");
-//     let relative_error_plot_name = format!("plot/ex1/n{N}-relative_error.svg");
-//     let time_elapsed_plot_name = format!("plot/ex1/n{N}-time_elapsed.svg");
-//         
-//         let root = SVGBackend::new(&residual_norm_plot_name, (800, 600)).into_drawing_area();
-//         root.fill(&WHITE)?;
-//         
-//         let mut chart = plotters::chart::ChartBuilder::on(&root)
-//             .caption(format!("消去法による残差ノルム (n = {N})"), ("sans-serif", 20).into_font())
-//             .margin(10)
-//             .x_label_area_size(40)
-//             .y_label_area_size(40)
-//             .build_cartesian_2d(
-//                 (-5..105).with_key_points(vec![0, 20, 40, 60, 80, 100]),
-//                 (1e-6..1e-3).log_scale().with_key_points(vec![1e-6, 1e-5, 1e-4, 1e-3, 1e-3]),
-//             )?;
-//         
-//         chart.configure_mesh()
-//             .x_desc("trials")
-//             .y_desc("residual norm")
-//             .y_label_formatter(&format_y_label)
-//             .axis_desc_style(("sans-serif", 16).into_font())
-//             .label_style(("sans-serif", 16).into_font())
-//             .draw()?;
-//         
-//         root.present()?;    
-
-//     MakePlot {
-//         caption: format!("消去法による残差ノルム (n = {N})"),
-//         y_desc: "residual norm",
-//         y_coord: (1e-6..1e-3).log_scale().with_key_points(vec![1e-6, 1e-5, 1e-4, 1e-3]),
-//     }
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    
+    let mut p = Plotter::init(PlotterInit {
+        caption: format!("消去法による残差ノルム (n = {N})"),
+        y_desc: "residual norm",
+        y_coord: (1e-6..1e-3).log_scale().with_key_points(vec![1e-6, 1e-5, 1e-4, 1e-3, 1e-3]),
+    });
+    p.plot(stats.iter().map(|stat| stat.residual_norm).collect::<Vec<_>>().try_into().unwrap());
+    p.write_into(format!("plot/ex1/n{N}-residual_norm.svg"))?;
+    
+    let mut p = Plotter::init(PlotterInit {
+        caption: format!("消去法による相対誤差 (n = {N})"),
+        y_desc: "relative error",
+        y_coord: (1e-6..1e-3).log_scale().with_key_points(vec![1e-6, 1e-5, 1e-4, 1e-3]),
+    });
+    p.plot(stats.iter().map(|stat| stat.relative_error).collect::<Vec<_>>().try_into().unwrap());
+    p.write_into(format!("plot/ex1/n{N}-relative_error.svg"))?;
+    
+    let mut p = Plotter::init(PlotterInit {
+        caption: format!("消去法による計算時間 (n = {N})"),
+        y_desc: "time elapsed (sec.)",
+        y_coord: (1e-3..4.*1e-3),
+    });
+    p.plot(stats.iter().map(|stat| stat.elapsed.as_secs_f64()).collect::<Vec<_>>().try_into().unwrap());
+    p.write_into(format!("plot/ex1/n{N}-time_elapsed.svg"))?;
 
     Ok(())
 }
