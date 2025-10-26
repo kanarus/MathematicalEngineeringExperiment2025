@@ -16,9 +16,9 @@ impl Plotter {
         root.fill(&WHITE)?;
         
         let mut chart = plotters::chart::ChartBuilder::on(&root)
-            .caption(format!("{} (点線は平均値)", self.caption), ("sans-serif", 20).into_font())
+            // .caption(format!("{} (点線は平均値)", self.caption), ("sans-serif", 20).into_font())
             .margin(10)
-            .x_label_area_size(60)
+            .x_label_area_size(40)
             .y_label_area_size(80)
             .build_cartesian_2d(
                 (-5..105).with_key_points(vec![0, 20, 40, 60, 80, 100]),
@@ -35,7 +35,7 @@ impl Plotter {
         
         let average = self.data.iter().copied().sum::<f64>() / (self.data.len() as f64);
         chart.draw_series(DashedLineSeries::new(
-            (0..100).map(|i| (i, average)),
+            (-5..105).map(|i| (i, average)),
             2,
             1,
             RED.into(),

@@ -66,6 +66,10 @@ fn solve_by_lu_decomposition<const N: usize>(
     back_substitution(&u, &y)
 }
 
+fn plot_100_experiments<const N: usize>(solver: EquationSolver<N>) -> Result<(), Box<dyn std::error::Error>> {
+    todo!()
+}
+
 fn main() {
     let solver = EquationSolver::new(solve_by_lu_decomposition::<100>);
     
