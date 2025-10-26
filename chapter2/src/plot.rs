@@ -16,10 +16,10 @@ impl Plotter {
         root.fill(&WHITE)?;
         
         let mut chart = plotters::chart::ChartBuilder::on(&root)
-            .caption(format!("{} [点線は平均値]", self.caption), ("sans-serif", 20).into_font())
+            .caption(format!("{} (点線は平均値)", self.caption), ("sans-serif", 20).into_font())
             .margin(10)
-            .x_label_area_size(40)
-            .y_label_area_size(60)
+            .x_label_area_size(60)
+            .y_label_area_size(80)
             .build_cartesian_2d(
                 (-5..105).with_key_points(vec![0, 20, 40, 60, 80, 100]),
                 self.derive_y_coord(),
@@ -54,7 +54,31 @@ impl Plotter {
     fn derive_y_coord(&self) -> impl AsRangedCoord<Value = f64, CoordDescType: ValueFormatter<f64>> {
         let min = self.data.iter().copied().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
         let max = self.data.iter().copied().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
-        todo!()
+        
+        assert!(min > 0.0, "expected positive values for plotting in chapter 2");
+        
+        let (min_coef, min_exp) = {
+            let (log10, log10_floor) = (min.log10(), min.log10().floor());
+            (10f64.powf(log10 - log10_floor), log10_floor as i32)
+        };
+        let (max_coef, max_exp) = {
+            let (log10, log10_floor) = (max.log10(), max.log10().floor());
+            (10f64.powf(log10 - log10_floor), log10_floor as i32)
+        };
+        
+        let key_points = if min_exp != max_exp {
+            (min_exp - 1..=max_exp + 1)
+                .map(|e| 10f64.powi(e))
+                .collect::<Vec<_>>()
+        } else {
+            (min_coef.floor() as i32..=max_coef.ceil() as i32)
+                .map(|c| (c as f64) * 10f64.powi(max_exp))
+                .collect::<Vec<_>>()
+        };
+        
+        (*key_points.first().unwrap()..*key_points.last().unwrap())
+            .log_scale()
+            .with_key_points(key_points)
     }
     
     fn format_y_label(value: &f64) -> String {
@@ -65,10 +89,18 @@ impl Plotter {
         } else if *value < 0.0 {
             format!("-{}", Self::format_y_label(&-*value))
         } else {
-            let log10_abs = value.log10().abs();
-            let coefficient = (log10_abs.fract() > 0.0)
-                .then(|| format!("{:.1}×", 10f64.powf(log10_abs.fract())));
-            let exponent = format!("10⁻{}", (log10_abs.floor() as usize)
+            let log10 = value.log10();
+            let log10_floor = log10.floor();
+            let coefficient = (log10 - log10_floor > crate::EPSILON)
+                .then(|| {
+                    let value = 10f64.powf(log10 - log10_floor);
+                    if value.fract() < crate::EPSILON {
+                        format!("{}×", value.round() as i32)
+                    } else {
+                        format!("{:.1}×", value)
+                    }
+                });
+            let exponent = format!("10⁻{}", (log10_floor.abs() as u32)
                 .to_string()
                 .chars()
                 .map(|c| SUPERSCRIPT[c.to_digit(10).unwrap() as usize])
