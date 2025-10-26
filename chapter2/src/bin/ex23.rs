@@ -1,19 +1,19 @@
+use chapter2::{Matrix, Vector};
 use chapter2::{EPSILON, EquationSolver, forward_substitution, back_substitution};
-use nalgebra::{SMatrix, SVector};
 
 struct LUDecomposition<const N: usize> {
-    l: SMatrix<f64, N, N>,
-    u: SMatrix<f64, N, N>,
+    l: Matrix<N, N>,
+    u: Matrix<N, N>,
     pi: [usize; N],
 }
 
 fn lu_decomposition<const N: usize>(
-    a: SMatrix<f64, N, N>,
+    a: Matrix<N, N>,
 ) -> LUDecomposition<N> {
     // initialize `pi` as an identity permutation
     let mut pi: [usize; N] = std::array::from_fn(|i| i);
     // initialize `l` as an identity matrix
-    let mut l = SMatrix::<f64, N, N>::identity();
+    let mut l = Matrix::<N, N>::identity();
     // initialize `u` as `a` itself
     let mut u = a;
     
@@ -55,13 +55,13 @@ fn lu_decomposition<const N: usize>(
 }
 
 fn solve_by_lu_decomposition<const N: usize>(
-    a: SMatrix<f64, N, N>,
-    b: SVector<f64, N>,
-) -> SVector<f64, N> {
+    a: Matrix<N, N>,
+    b: Vector<N>,
+) -> Vector<N> {
     let LUDecomposition { l, u, pi } = lu_decomposition(a);
     
     // solve Ly = Pb by forward substitution
-    let y = forward_substitution(&l, &SVector::from_fn(|i, _| b[pi[i]]));
+    let y = forward_substitution(&l, &Vector::from_fn(|i, _| b[pi[i]]));
     // solve Ux = y by back substitution
     back_substitution(&u, &y)
 }
@@ -80,7 +80,7 @@ mod tests {
     
     #[test]
     fn test_lu_decomposition() {
-        let a = SMatrix::<f64, 3, 3>::from_row_slice(&[
+        let a = Matrix::<3, 3>::from_row_slice(&[
             2.0, 1.0, -1.0,
             -3.0, -1.0, 2.0,
             -2.0, 1.0, 2.0,

@@ -1,7 +1,7 @@
+use chapter2::{Matrix, Vector};
 use chapter2::{EPSILON, EquationSolver, EquationExperimentStat, back_substitution};
-use nalgebra::{DMatrix, SMatrix, SVector};
 
-fn do_gaussian_elimination_for_n_n1(ab: &mut DMatrix<f64>) {
+fn do_gaussian_elimination_for_n_n1(ab: &mut nalgebra::DMatrix<f64>) {
     let n = ab.nrows();
     let m = ab.ncols();
     
@@ -27,16 +27,16 @@ fn do_gaussian_elimination_for_n_n1(ab: &mut DMatrix<f64>) {
     }
 }
 
-fn solve_by_gaussian_elimination<const N: usize>(a: SMatrix<f64, N, N>, b: SVector<f64, N>) -> SVector<f64, N> {
-    let mut augmented_coefficient_matrix = DMatrix::from_fn(N, N + 1, |i, j| {
+fn solve_by_gaussian_elimination<const N: usize>(a: Matrix<N, N>, b: Vector<N>) -> Vector<N> {
+    let mut augmented_coefficient_matrix = nalgebra::DMatrix::from_fn(N, N + 1,|i, j| {
         if j < N { a[(i, j)] } else { b[i] }
     });
     
     do_gaussian_elimination_for_n_n1(&mut augmented_coefficient_matrix);
     
     back_substitution(
-        &SMatrix::<_, N, N>::from_fn(|i, j| augmented_coefficient_matrix[(i, j)]),
-        &SVector::<_, N>::from_fn(|i, _| augmented_coefficient_matrix[(i, N)]),
+        &Matrix::<N, N>::from_fn(|i, j| augmented_coefficient_matrix[(i, j)]),
+        &Vector::<N>::from_fn(|i, _| augmented_coefficient_matrix[(i, N)]),
     )
 }
 
@@ -112,7 +112,9 @@ fn plot_100_experiments<const N: usize>(solver: EquationSolver<N>) -> Result<(),
         }
     }
     
-    let stats = (0..100).map(|_| dbg!(solver.experiment_randomly()));
+    let stats = (0..100)
+        .map(|_| dbg!(solver.experiment_randomly()))
+        .collect::<Vec<_>>();
 
 //     let residual_norm_plot_name = format!("plot/ex1/n{N}-residual_norm.svg");
 //     let relative_error_plot_name = format!("plot/ex1/n{N}-relative_error.svg");
@@ -141,20 +143,25 @@ fn plot_100_experiments<const N: usize>(solver: EquationSolver<N>) -> Result<(),
 //         
 //         root.present()?;    
 
-    MakePlot {
-        caption: format!("消去法による残差ノルム (n = {N})"),
-        y_desc: "residual norm",
-        y_coord: (1e-6..1e-3).log_scale().with_key_points(vec![1e-6, 1e-5, 1e-4, 1e-3]),
-    }
+//     MakePlot {
+//         caption: format!("消去法による残差ノルム (n = {N})"),
+//         y_desc: "residual norm",
+//         y_coord: (1e-6..1e-3).log_scale().with_key_points(vec![1e-6, 1e-5, 1e-4, 1e-3]),
+//     }
 
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<100>))?;
-    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<200>))?;
-    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<400>))?;
-    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<800>))?;
+//    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<100>))?;
+//    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<200>))?;
+//    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<400>))?;
+//    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<800>))?;
+
+    let solver = EquationSolver::new(solve_by_gaussian_elimination::<800>);
+    println!("<{}>", line!());
+    let _ = solver.experiment_randomly();
+
     Ok(())
 }
 
@@ -164,7 +171,7 @@ mod tests {
     
     #[test]
     fn test_do_gaussian_elimination() {
-        let mut ab = DMatrix::from_row_slice(3, 4, &[
+        let mut ab = nalgebra::DMatrix::from_row_slice(3, 4, &[
             2.0, 1.0, -1.0, 8.0,
             -3.0, -1.0, 2.0, -11.0,
             -2.0, 1.0, 2.0, -3.0,
@@ -174,7 +181,7 @@ mod tests {
         
         dbg!(ab.as_slice());
         
-        let expected = DMatrix::from_row_slice(3, 4, &[
+        let expected = nalgebra::DMatrix::from_row_slice(3, 4, &[
             -3.0, -1.0, 2.0, -11.0,
             0.0, 5./3., 2./3., 13./3.,
             0.0, 0.0, 1./5., -1./5.,

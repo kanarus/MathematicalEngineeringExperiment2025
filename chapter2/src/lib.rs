@@ -1,4 +1,13 @@
-use nalgebra::{SMatrix, SVector};
+// use nalgebra::{SMatrix, SVector};
+
+pub type Matrix<const N: usize, const M: usize> = nalgebra::Matrix<
+    f64,
+    nalgebra::Const<N>,
+    nalgebra::Const<M>,
+    nalgebra::Owned<f64, nalgebra::Const<N>, nalgebra::Const<M>>
+>;
+
+pub type Vector<const N: usize> = Matrix<N, 1>;
 
 pub const EPSILON: f64 = 1e-10;
 
@@ -9,15 +18,15 @@ pub const EPSILON: f64 = 1e-10;
 /// for i = 0, 1, ..., N-1
 /// ```
 pub fn forward_substitution<const N: usize>(
-    lower_triangular_matrix: &SMatrix<f64, N, N>,
-    b: &SVector<f64, N>,
-) -> SVector<f64, N> {
+    lower_triangular_matrix: &Matrix<N, N>,
+    b: &Vector<N>,
+) -> Vector<N> {
     assert!(
         (0..N).all(|i| lower_triangular_matrix.column(i).iter().take(i).enumerate().all(|(j, x)| {dbg!(i, j); dbg!(x.abs()) < EPSILON})),
         "Matrix is not lower triangular"
     );
     
-    let mut y = SVector::<f64, N>::zeros();
+    let mut y = Vector::<N>::zeros();
     for i in 0..N {
         let mut sum = 0.0;
         for j in 0..i {
@@ -35,15 +44,15 @@ pub fn forward_substitution<const N: usize>(
 /// for i = N-1, N-2, ..., 0
 /// ```
 pub fn back_substitution<const N: usize>(
-    upper_triangular_matrix: &SMatrix<f64, N, N>,
-    b: &SVector<f64, N>,
-) -> SVector<f64, N> {
+    upper_triangular_matrix: &Matrix<N, N>,
+    b: &Vector<N>,
+) -> Vector<N> {
     assert!(
         (0..N).all(|i| upper_triangular_matrix.column(i).iter().skip(i + 1).all(|x| x.abs() < EPSILON)),
         "Matrix is not upper triangular"
     );
     
-    let mut x = SVector::<f64, N>::zeros();
+    let mut x = Vector::<N>::zeros();
     for i in (0..N).rev() {
         let mut sum = 0.0;
         for j in (i + 1)..N {
@@ -72,72 +81,87 @@ where
 /// A reference implementation for solving the equation `Ax = b`
 /// using nalgebra's LU decomposition.
 fn reference_equation_solver<const N: usize>(
-    a: SMatrix<f64, N, N>,
-    b: SVector<f64, N>,
-) -> SVector<f64, N> {
+    a: Matrix<N, N>,
+    b: Vector<N>,
+) -> Vector<N> {
     let view = nalgebra::DMatrix::from_column_slice(N, N, a.as_slice())
         .lu()
         .solve(&b)
         .unwrap();
-    SVector::<f64, N>::from_column_slice(view.as_slice())
+    Vector::<N>::from_column_slice(view.as_slice())
 }
 
 pub struct EquationSolver<const N: usize> {
-    f: fn(SMatrix<f64, N, N>, SVector<f64, N>) -> SVector<f64, N>,
+    f: fn(Matrix<N, N>, Vector<N>) -> Vector<N>,
 }
 
 #[derive(Debug)]
 pub struct EquationExperimentStat<const N: usize> {
-    pub solution: SVector<f64, N>,
+    pub solution: Vector<N>,
     pub elapsed: std::time::Duration,
-    pub reference_solution: SVector<f64, N>,
+    pub reference_solution: Vector<N>,
     pub residual_norm: f64,
     pub relative_error: f64,
 }
 
+type V100 = Vector<100>;
+type V200 = Vector<200>;
+type V400 = Vector<300>;
+type V800 = Vector<400>;
+
+type X100 = EquationExperimentStat<100>;
+type X200 = EquationExperimentStat<200>;
+type X400 = EquationExperimentStat<300>;
+type X800 = EquationExperimentStat<400>;
+
 impl<const N: usize> EquationSolver<N> {
     /// `f: (A, b) -> x` should solve the equation `Ax = b`
     pub fn new(
-        f: fn(SMatrix<f64, N, N>, SVector<f64, N>) -> SVector<f64, N>,
+        f: fn(Matrix<N, N>, Vector<N>) -> Vector<N>,
     ) -> Self {
         Self { f }
     }
     
     pub fn experiment_randomly(&self) -> EquationExperimentStat<N> {
-        let a = SMatrix::<f64, N, N>::from_fn(|_, _| random_value());
-        let b = SVector::<f64, N>::from_fn(|_, _| random_value());    
+        println!("<{}>", line!());
+        let a = Matrix::<N, N>::from_fn(|_, _| random_value());
+        println!("<{}>", line!());
+        let b = Vector::<N>::from_fn(|_, _| random_value());    
+        println!("<{}>", line!());
         
         let (solution, elapsed) = with_elapsed(|| (self.f)(a, b));
+        println!("<{}>", line!());
         
         let reference_solution = reference_equation_solver(a, b);
+        println!("<{}>", line!());
         
         EquationExperimentStat {
             solution,
             reference_solution,
             elapsed,
             residual_norm: (b - a * &solution).norm(),
-            relative_error: ( &solution - &reference_solution).norm() / reference_solution.norm(),
+            relative_error: (&solution - &reference_solution).norm() / reference_solution.norm(),
         }
     }
 }
 
 pub struct DominantEigenvalueSolver<const N: usize> {
-    f: fn(SMatrix<f64, N, N>) -> DominantEigenvalueSolution<N>,
+    f: fn(Matrix<N, N>) -> DominantEigenvalueSolution<N>,
 }
 
 #[derive(Debug)]
 pub struct DominantEigenvalueSolution<const N: usize> {
     pub eigenvalue: f64,
-    pub eigenvector: SVector<f64, N>,
+    pub eigenvector: Vector<N>,
     pub iteration_count: usize,
 }
 
 #[derive(Debug)]
 pub struct DominantEigenvalueExperimentStat<const N: usize> {
-    pub solution: (f64, SVector<f64, N>),
+    pub solution: (f64, Vector<N>),
     pub iteration_count: usize,
     pub elapsed: std::time::Duration,
-    pub reference_solution: (f64, SVector<f64, N>),
+    pub reference_solution: (f64, Vector<N>),
     pub eigenvalue_residual_norm: f64,
     pub eigenvalue_relative_error: f64,
     pub eigenvector_relative_error: f64,
@@ -145,13 +169,13 @@ pub struct DominantEigenvalueExperimentStat<const N: usize> {
 
 impl<const N: usize> DominantEigenvalueSolver<N> {
     /// `f: A -> (λ, x)` should find the first eigenvalue λ and its eigenvector x of A
-    pub fn new(f: fn(SMatrix<f64, N, N>) -> DominantEigenvalueSolution<N>) -> Self {
+    pub fn new(f: fn(Matrix<N, N>) -> DominantEigenvalueSolution<N>) -> Self {
         Self { f }
     }
     
     pub fn experiment_randomly(&self) -> DominantEigenvalueExperimentStat<N> {
         let a = {
-            let random = SMatrix::<f64, N, N>::from_fn(|_, _| random_value());
+            let random = Matrix::<N, N>::from_fn(|_, _| random_value());
             random + random.transpose() // generate a symmetric matrix to ensure real eigenvalues
         };
         
@@ -169,7 +193,7 @@ impl<const N: usize> DominantEigenvalueSolver<N> {
                 .get(0)
                 .expect("Matrix is singular")
                 .to_owned();
-            let its_singular_vector = SVector::<_, N>::from_column_slice(&svd
+            let its_singular_vector = Vector::<N>::from_column_slice(&svd
                 .u
                 .unwrap()
                 .column(0)
@@ -194,24 +218,22 @@ impl<const N: usize> DominantEigenvalueSolver<N> {
 }
 
 pub struct AllEigenvaluesSolver<const N: usize> {
-    f: fn(SMatrix<f64, N, N>) -> AllEigenvaluesSolution<N>,
+    f: fn(Matrix<N, N>) -> AllEigenvaluesSolution<N>,
 }
 
 #[derive(Debug)]
 pub struct AllEigenvaluesSolution<const N: usize> {
-    pub eigenvalues: SVector<f64, N>,
-    pub eigenvectors: SMatrix<f64, N, N>,
+    pub eigenvalues: Vector<N>,
+    pub eigenvectors: Matrix<N, N>,
     pub iteration_count: usize,
 }
 
 #[derive(Debug)]
 pub struct AllEigenvaluesExperimentStat<const N: usize> {
-    pub solution: (SVector<f64, N>, SMatrix<f64, N, N>),
+    pub solution: (Vector<N>, Matrix<N, N>),
     pub iteration_count: usize,
     pub elapsed: std::time::Duration,
-    pub reference_solution: (SVector<f64, N>, SMatrix<f64, N, N>),
+    pub reference_solution: (Vector<N>, Matrix<N, N>),
     pub max_eigenvalue_residual_norm: f64,
     pub max_eigenvalues_relative_error: f64,
 }
-
-
