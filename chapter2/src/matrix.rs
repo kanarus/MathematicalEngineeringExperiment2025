@@ -1,3 +1,4 @@
+/// N-rows and M-columns matrix
 #[derive(Clone)]
 pub struct Matrix<const N: usize, const M: usize> {
     /// using `Vec` instead of array to avoid stack overflow for large matrices
@@ -6,37 +7,27 @@ pub struct Matrix<const N: usize, const M: usize> {
 
 pub type Vector<const N: usize> = Matrix<N, 1>;
 
-impl<const N: usize, const M: usize> std::fmt::Debug for Matrix<N, M> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if M == 1 {
-            self.columns[0].fmt(f)
-        } else {
-            self.columns.fmt(f)
-        }
-    }
-}
-
 impl<const N: usize, const M: usize> From<[[f64; M]; N]> for Matrix<N, M> {
-    fn from(array: [[f64; M]; N]) -> Self {
-        Self { columns: array.map(|column| column.to_vec()).to_vec() }
+    fn from(array_of_rows: [[f64; M]; N]) -> Self {
+        Self::from_fn(|i, j| array_of_rows[i][j])
     }
 }
 impl<const N: usize, const M: usize> From<&[[f64; M]; N]> for Matrix<N, M> {
-    fn from(array: &[[f64; M]; N]) -> Self {
-        Self { columns: array.map(|column| column.to_vec()).to_vec() }
+    fn from(array_of_rows: &[[f64; M]; N]) -> Self {
+        Self::from_fn(|i, j| array_of_rows[i][j])
     }
 }
 impl<const N: usize, const M: usize> From<[&[f64; M]; N]> for Matrix<N, M> {
-    fn from(array: [&[f64; M]; N]) -> Self {
-        Self { columns: array.map(|column| column.to_vec()).to_vec() }
+    fn from(array_of_rows: [&[f64; M]; N]) -> Self {
+        Self::from_fn(|i, j| array_of_rows[i][j])
     }
 }
 impl<const N: usize, const M: usize> TryFrom<&[&[f64]]> for Matrix<N, M> {
     type Error = &'static str;
-    fn try_from(slice: &[&[f64]]) -> Result<Self, Self::Error> {
-        (slice.len() == N && slice.iter().all(|column| column.len() == M))
-            .then(|| Self { columns: slice.iter().map(|column| column.to_vec()).collect() })
-            .ok_or("slice dimensions do not match matrix size")
+    fn try_from(slice_of_rows: &[&[f64]]) -> Result<Self, Self::Error> {
+        (slice_of_rows.len() == N && slice_of_rows.iter().all(|row| row.len() == M))
+            .then(|| Self::from_fn(|i, j| slice_of_rows[i][j]))
+            .ok_or("slice of rows dimensions do not match matrix size")
     }
 }
 
@@ -81,8 +72,8 @@ impl<const N: usize, const M: usize> Matrix<N, M> {
         Matrix::<M, N>::from_fn(|i, j| self[(j, i)])
     }
     
-    pub fn concat<const L: usize>(a: Matrix<N, M>, b: Matrix<N, L>) -> Matrix<N, { M + L }> {
-        Matrix::<N, { M + L }>::from_fn(|i, j| {
+    pub fn concat<const L: usize>(a: &Matrix<N, M>, b: &Matrix<N, L>) -> Matrix<N, {M + L}> {
+        Matrix::<N, {M + L}>::from_fn(|i, j| {
             if j < M {
                 a[(i, j)]
             } else {
@@ -156,6 +147,16 @@ const _: () = {
         }
     }
 };
+
+impl<const N: usize, const M: usize> std::fmt::Debug for Matrix<N, M> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if M == 1 {
+            self.columns[0].fmt(f)
+        } else {
+            self.columns.fmt(f)
+        }
+    }
+}
 
 impl<const N: usize, const M: usize> std::ops::Index<(usize, usize)> for Matrix<N, M> {
     type Output = f64;

@@ -67,15 +67,36 @@ fn solve_by_lu_decomposition<const N: usize>(
 }
 
 fn plot_100_experiments<const N: usize>(solver: EquationSolver<N>) -> Result<(), Box<dyn std::error::Error>> {
-    todo!()
+    let stats: [chapter2::EquationExperimentStat<N>; 100] = (0..100)
+        .map(|_| dbg!(solver.experiment_randomly()))
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    
+    chapter2::Plotter {
+        y_desc: "residual norm",
+        data: stats.iter().map(|stat| stat.residual_norm).collect::<Vec<_>>().try_into().unwrap(),
+    }.plot_into(format!("plot/ex2/n{N}-residual_norm.svg"))?;
+    
+    chapter2::Plotter {
+        y_desc: "relative error",
+        data: stats.iter().map(|stat| stat.relative_error).collect::<Vec<_>>().try_into().unwrap(),
+    }.plot_into(format!("plot/ex2/n{N}-relative_error.svg"))?;
+    
+    chapter2::Plotter {
+        y_desc: "time elapsed (sec.)",
+        data: stats.iter().map(|stat| stat.elapsed.as_secs_f64()).collect::<Vec<_>>().try_into().unwrap(),
+    }.plot_into(format!("plot/ex2/n{N}-time_elapsed.svg"))?;
+    
+    Ok(())
 }
 
-fn main() {
-    let solver = EquationSolver::new(solve_by_lu_decomposition::<100>);
-    
-    for _ in 0..100 {
-        dbg!(solver.experiment_randomly());
-    }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    plot_100_experiments(EquationSolver::new(solve_by_lu_decomposition::<100>))?;
+    plot_100_experiments(EquationSolver::new(solve_by_lu_decomposition::<200>))?;
+    plot_100_experiments(EquationSolver::new(solve_by_lu_decomposition::<400>))?;
+    plot_100_experiments(EquationSolver::new(solve_by_lu_decomposition::<800>))?;
+    Ok(())
 }
 
 #[cfg(test)]

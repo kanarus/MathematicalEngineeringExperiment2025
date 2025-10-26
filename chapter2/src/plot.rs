@@ -5,7 +5,6 @@ use plotters::series::{PointSeries, DashedLineSeries};
 use plotters::prelude::{SVGBackend, Circle, IntoLogRange, BindKeyPoints};
 
 pub struct Plotter {
-    pub caption: String,
     pub y_desc: &'static str,
     pub data: [f64; 100],
 }

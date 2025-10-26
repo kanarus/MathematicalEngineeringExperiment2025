@@ -1,14 +1,12 @@
-use chapter2::{Matrix, Vector};
-use chapter2::{EPSILON, EquationSolver, EquationExperimentStat, back_substitution};
+#![allow(incomplete_features)]
+#![feature(generic_const_exprs)]
 
-fn do_gaussian_elimination_for_n_n1(ab: &mut nalgebra::DMatrix<f64>) {
-    let n = ab.nrows();
-    let m = ab.ncols();
-    
-    assert!(n + 1 == m);
-    
-    for k in 0..(n - 1) {
-        let (i, _pivot) = (k..n)
+use chapter2::{Matrix, Vector};
+use chapter2::{EPSILON, EquationSolver, back_substitution};
+
+fn do_gaussian_elimination<const N: usize>(ab: &mut Matrix<N, {N + 1}>) {
+    for k in 0..(N - 1) {
+        let (i, _pivot) = (k..N)
             .map(|i| (i, ab[(i, k)]))
             .filter(|(_, value)| value.abs() > EPSILON)
             .max_by(|(_, a), (_, b)| f64::partial_cmp(&a.abs(), &b.abs()).expect("found NaN or Inf"))
@@ -18,22 +16,18 @@ fn do_gaussian_elimination_for_n_n1(ab: &mut nalgebra::DMatrix<f64>) {
             ab.swap_rows(i, k);
         }
         
-        for i in (k + 1)..n {
+        for i in (k + 1)..N {
             let factor = ab[(i, k)] / ab[(k, k)];
-            for j in k..m {
+            for j in k..(N + 1) {
                 ab[(i, j)] -= factor * ab[(k, j)];
             }
         }
     }
 }
 
-fn solve_by_gaussian_elimination<const N: usize>(a: &Matrix<N, N>, b: &Vector<N>) -> Vector<N> {
-    let mut augmented_coefficient_matrix = nalgebra::DMatrix::from_fn(N, N + 1,|i, j| {
-        if j < N { a[(i, j)] } else { b[i] }
-    });
-    
-    do_gaussian_elimination_for_n_n1(&mut augmented_coefficient_matrix);
-    
+fn solve_by_gaussian_elimination<const N: usize>(a: &Matrix<N, N>, b: &Vector<N>) -> Vector<N> where [(); N + 1]: {
+    let mut augmented_coefficient_matrix = Matrix::concat(a, b);
+    do_gaussian_elimination(&mut augmented_coefficient_matrix);    
     back_substitution(
         &Matrix::<N, N>::from_fn(|i, j| augmented_coefficient_matrix[(i, j)]),
         &Vector::<N>::from_fn(|i, _| augmented_coefficient_matrix[(i, N)]),
@@ -41,26 +35,23 @@ fn solve_by_gaussian_elimination<const N: usize>(a: &Matrix<N, N>, b: &Vector<N>
 }
 
 fn plot_100_experiments<const N: usize>(solver: EquationSolver<N>) -> Result<(), Box<dyn std::error::Error>> {
-    let stats: [EquationExperimentStat<N>; 100] = (0..100)
+    let stats: [chapter2::EquationExperimentStat<N>; 100] = (0..100)
         .map(|_| dbg!(solver.experiment_randomly()))
         .collect::<Vec<_>>()
         .try_into()
         .unwrap();
     
     chapter2::Plotter {
-        caption: format!("消去法による残差ノルム (n = {N})"),
         y_desc: "residual norm",
         data: stats.iter().map(|stat| stat.residual_norm).collect::<Vec<_>>().try_into().unwrap(),
     }.plot_into(format!("plot/ex1/n{N}-residual_norm.svg"))?;
     
     chapter2::Plotter {
-        caption: format!("消去法による相対誤差 (n = {N})"),
         y_desc: "relative error",
         data: stats.iter().map(|stat| stat.relative_error).collect::<Vec<_>>().try_into().unwrap(),
     }.plot_into(format!("plot/ex1/n{N}-relative_error.svg"))?;
     
     chapter2::Plotter {
-        caption: format!("消去法による計算時間 (n = {N})"),
         y_desc: "time elapsed (sec.)",
         data: stats.iter().map(|stat| stat.elapsed.as_secs_f64()).collect::<Vec<_>>().try_into().unwrap(),
     }.plot_into(format!("plot/ex1/n{N}-time_elapsed.svg"))?;
@@ -82,15 +73,15 @@ mod tests {
     
     #[test]
     fn test_do_gaussian_elimination() {
-        let mut ab = nalgebra::DMatrix::from_row_slice(3, 4, &[
-            2.0, 1.0, -1.0, 8.0,
-            -3.0, -1.0, 2.0, -11.0,
-            -2.0, 1.0, 2.0, -3.0,
+        let mut ab = Matrix::from([
+            [2.0, 1.0, -1.0, 8.0],
+            [-3.0, -1.0, 2.0, -11.0],
+            [-2.0, 1.0, 2.0, -3.0],
         ]);
         
-        do_gaussian_elimination_for_n_n1(&mut ab);
+        do_gaussian_elimination(&mut ab);
         
-        dbg!(ab.as_slice());
+        dbg!(&ab);
         
         let expected = nalgebra::DMatrix::from_row_slice(3, 4, &[
             -3.0, -1.0, 2.0, -11.0,

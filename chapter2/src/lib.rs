@@ -20,7 +20,7 @@ pub fn forward_substitution<const N: usize>(
     b: &Vector<N>,
 ) -> Vector<N> {
     assert!(
-        (0..N).all(|i| lower_triangular_matrix.column(i).take(i).enumerate().all(|(j, x)| {dbg!(i, j); dbg!(x.abs()) < EPSILON})),
+        (0..N).all(|i| lower_triangular_matrix.column(i).take(i).all(|x| x.abs() < EPSILON)),
         "Matrix is not lower triangular"
     );
     
