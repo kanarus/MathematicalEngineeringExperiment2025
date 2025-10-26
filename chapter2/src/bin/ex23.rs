@@ -8,14 +8,14 @@ struct LUDecomposition<const N: usize> {
 }
 
 fn lu_decomposition<const N: usize>(
-    a: Matrix<N, N>,
+    a: &Matrix<N, N>,
 ) -> LUDecomposition<N> {
     // initialize `pi` as an identity permutation
     let mut pi: [usize; N] = std::array::from_fn(|i| i);
     // initialize `l` as an identity matrix
     let mut l = Matrix::<N, N>::identity();
     // initialize `u` as `a` itself
-    let mut u = a;
+    let mut u = a.clone();
     
     /*
      * NOTE:
@@ -48,15 +48,15 @@ fn lu_decomposition<const N: usize>(
             l[(i, k)] = factor;
         }
         l[(k, k)] = 1.0;
-        l.column_mut(k).rows_range_mut(0..k).apply(|it| *it = 0.0);
+        l.column_mut(k).take(k).for_each(|it| *it = 0.0);
     }
     
     LUDecomposition { l, u, pi }
 }
 
 fn solve_by_lu_decomposition<const N: usize>(
-    a: Matrix<N, N>,
-    b: Vector<N>,
+    a: &Matrix<N, N>,
+    b: &Vector<N>,
 ) -> Vector<N> {
     let LUDecomposition { l, u, pi } = lu_decomposition(a);
     
@@ -80,15 +80,15 @@ mod tests {
     
     #[test]
     fn test_lu_decomposition() {
-        let a = Matrix::<3, 3>::from_row_slice(&[
-            2.0, 1.0, -1.0,
-            -3.0, -1.0, 2.0,
-            -2.0, 1.0, 2.0,
+        let a = Matrix::from([
+            [2.0, 1.0, -1.0],
+            [-3.0, -1.0, 2.0],
+            [-2.0, 1.0, 2.0],
         ]);
         
-        let my_decomposition = lu_decomposition(a);
+        let my_decomposition = lu_decomposition(&a);
         
-        let reference_decomposition = nalgebra::Matrix::lu(a);
+        let reference_decomposition = nalgebra::SMatrix::<_, 3, 3>::from_fn(|i, j| a[(i, j)]).lu();
         
         assert!(reference_decomposition.l().shape() == (3, 3));
         for i in 0..3 {

@@ -1,13 +1,13 @@
 use chapter2::{Matrix, Vector};
 use chapter2::{EPSILON, DominantEigenvalueSolver, DominantEigenvalueSolution};
 
-fn solve_by_power_iteration<const N: usize>(a: Matrix<N, N>) -> DominantEigenvalueSolution<N> {
+fn solve_by_power_iteration<const N: usize>(a: &Matrix<N, N>) -> DominantEigenvalueSolution<N> {
     const MAX_ITERATIONS: usize = 100_000;
     
     let mut mu = Vec::<f64>::new();
-    let mut x_k = Vector::<N>::from_element(1.0);
+    let mut x_k = Vector::<N>::filled_with(1.0);
     for count in 1..MAX_ITERATIONS {
-        let y_k = a * x_k;
+        let y_k = a * &x_k;
         
         let (i, _max_abs) = x_k
             .iter()
@@ -24,7 +24,7 @@ fn solve_by_power_iteration<const N: usize>(a: Matrix<N, N>) -> DominantEigenval
             };
         }
         
-        x_k = y_k / y_k.norm();
+        x_k = y_k.normalized();
         mu.push(mu_k);
     }
     
@@ -45,17 +45,17 @@ mod tests {
     
     #[test]
     fn test_solve_by_power_iteration() {
-        let a = Matrix::<3, 3>::from_row_slice(&[
-            2.0, 1.0, 0.0,
-            1.0, 2.0, 1.0,
-            0.0, 1.0, 2.0,
+        let a = Matrix::<3, 3>::from([
+            [2.0, 1.0, 0.0],
+            [1.0, 2.0, 1.0],
+            [0.0, 1.0, 2.0],
         ]);
         
-        let solution = dbg!(solve_by_power_iteration(a));
+        let solution = dbg!(solve_by_power_iteration(&a));
         
         assert!((solution.eigenvalue - (f64::sqrt(2.) + 2.)).abs() < EPSILON);
-        assert!((solution.eigenvector.normalize() - Vector::<3>::from_column_slice(&[
+        assert!((solution.eigenvector.normalized() - Vector::<3>::from([
             1., f64::sqrt(2.), 1.
-        ]).normalize()).norm() < EPSILON);
+        ]).normalized()).norm() < EPSILON);
     }
 }
