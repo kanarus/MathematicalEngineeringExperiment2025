@@ -2,7 +2,7 @@ use chapter2::{Matrix, Vector};
 use chapter2::{EPSILON, DominantEigenvalueSolver, DominantEigenvalueSolution};
 
 fn solve_by_power_iteration<const N: usize>(a: &Matrix<N, N>) -> DominantEigenvalueSolution<N> {
-    const MAX_ITERATIONS: usize = 100_000;
+    const MAX_ITERATIONS: usize = 1000_000;
     
     let mut mu = Vec::<f64>::new();
     let mut x_k = Vector::<N>::filled_with(1.0);
@@ -31,12 +31,47 @@ fn solve_by_power_iteration<const N: usize>(a: &Matrix<N, N>) -> DominantEigenva
     panic!("`mu` seems to diverge");
 }
 
-fn main() {
-    let solver = DominantEigenvalueSolver::new(solve_by_power_iteration::<100>);
+fn plot_100_experiments<const N: usize>(solver: DominantEigenvalueSolver<N>) -> Result<(), Box<dyn std::error::Error>> {
+    let stats: [chapter2::DominantEigenvalueExperimentStat<N>; 100] = (0..100)
+        .map(|_| dbg!(solver.experiment_randomly()))
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
     
-    for _ in 0..100 {
-        dbg!(solver.experiment_randomly());
-    }
+    chapter2::Plotter {
+        y_desc: "residual norm",
+        data: stats.iter().map(|stat| stat.residual_norm).collect::<Vec<_>>().try_into().unwrap(),
+    }.plot_into(format!("plot/ex4/n{N}-residual_norm.svg"))?;
+    
+    chapter2::Plotter {
+        y_desc: "eigenvalue's relative error",
+        data: stats.iter().map(|stat| stat.eigenvalue_relative_error).collect::<Vec<_>>().try_into().unwrap(),
+    }.plot_into(format!("plot/ex4/n{N}-eigenvalue_relative_error.svg"))?;
+    
+    chapter2::Plotter {
+        y_desc: "eigenvector's relative error",
+        data: stats.iter().map(|stat| stat.eigenvector_relative_error).collect::<Vec<_>>().try_into().unwrap(),
+    }.plot_into(format!("plot/ex4/n{N}-eigenvector_relative_error.svg"))?;
+    
+    chapter2::Plotter {
+        y_desc: "time elapsed (sec.)",
+        data: stats.iter().map(|stat| stat.elapsed.as_secs_f64()).collect::<Vec<_>>().try_into().unwrap(),
+    }.plot_into(format!("plot/ex4/n{N}-time_elapsed.svg"))?;
+    
+    chapter2::Plotter {
+        y_desc: "# of steps",
+        data: stats.iter().map(|stat| stat.iteration_count as f64).collect::<Vec<_>>().try_into().unwrap(),
+    }.plot_into(format!("plot/ex4/n{N}-iteration_count.svg"))?;
+    
+    Ok(())
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    plot_100_experiments(DominantEigenvalueSolver::new(solve_by_power_iteration::<50>))?;
+    plot_100_experiments(DominantEigenvalueSolver::new(solve_by_power_iteration::<100>))?;
+    plot_100_experiments(DominantEigenvalueSolver::new(solve_by_power_iteration::<200>))?;
+    plot_100_experiments(DominantEigenvalueSolver::new(solve_by_power_iteration::<400>))?;
+    Ok(())
 }
 
 #[cfg(test)]

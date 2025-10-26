@@ -152,7 +152,7 @@ pub struct DominantEigenvalueExperimentStat<const N: usize> {
     pub iteration_count: usize,
     pub elapsed: std::time::Duration,
     pub reference_solution: (f64, Vector<N>),
-    pub eigenvalue_residual_norm: f64,
+    pub residual_norm: f64,
     pub eigenvalue_relative_error: f64,
     pub eigenvector_relative_error: f64,
 }
@@ -212,7 +212,7 @@ impl<const N: usize> DominantEigenvalueSolver<N> {
             )
         };
         
-        let eigenvalue_residual_norm = (eigenvalue * &eigenvector - a * &eigenvector).norm();
+        let residual_norm = (eigenvalue * &eigenvector - a * &eigenvector).norm();
         let eigenvalue_relative_error = (eigenvalue - reference_eigenvalue).abs() / reference_eigenvalue.abs();
         let eigenvector_relative_error = (&eigenvector - &reference_eigenvector).norm() / reference_eigenvector.norm();
         
@@ -221,7 +221,7 @@ impl<const N: usize> DominantEigenvalueSolver<N> {
             iteration_count,
             elapsed,
             reference_solution: (reference_eigenvalue, reference_eigenvector),
-            eigenvalue_residual_norm,
+            residual_norm,
             eigenvalue_relative_error,
             eigenvector_relative_error,
         }
