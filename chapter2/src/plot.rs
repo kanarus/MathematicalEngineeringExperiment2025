@@ -1,54 +1,28 @@
 use plotters::drawing::IntoDrawingArea;
-use plotters::style::{IntoFont, BLUE, RED, WHITE};
+use plotters::style::{Color, IntoFont, BLUE, RED, WHITE};
 use plotters::coord::ranged1d::{AsRangedCoord, ValueFormatter};
 use plotters::series::{PointSeries, DashedLineSeries};
-use plotters::prelude::{SVGBackend, Circle};
-pub use plotters::prelude::{IntoLogRange, BindKeyPoints};
+use plotters::prelude::{SVGBackend, Circle, IntoLogRange, BindKeyPoints};
 
-pub struct Plotter<Y: AsRangedCoord<Value = f64>> {
-    caption: String,
-    y_desc: String,
-    y_coord: Y,
-    data: Vec<[f64; 100]>,
-}
-
-pub struct PlotterInit<Y: AsRangedCoord<Value = f64>> {
+pub struct Plotter {
     pub caption: String,
     pub y_desc: &'static str,
-    pub y_coord: Y,
+    pub data: [f64; 100],
 }
 
-impl<Y: AsRangedCoord<Value = f64>> Plotter<Y> {
-    pub fn init(init: PlotterInit<Y>) -> Self {
-        Self {
-            caption: init.caption,
-            y_desc: init.y_desc.to_string(),
-            y_coord: init.y_coord,
-            data: Vec::new(),
-        }
-    }
-}
-
-impl<Y: AsRangedCoord<Value = f64>> Plotter<Y> {
-    pub fn plot(&mut self, values: [f64; 100]) {
-        self.data.push(values);
-    }
-    
-    pub fn write_into(self, path: impl AsRef<std::path::Path>) -> Result<(), Box<dyn std::error::Error>>
-    where
-        <Y as AsRangedCoord>::CoordDescType: ValueFormatter<<Y as AsRangedCoord>::Value>,
-    {
+impl Plotter {
+    pub fn plot_into(self, path: impl AsRef<std::path::Path>) -> Result<(), Box<dyn std::error::Error>> {
         let root = SVGBackend::new(&path, (800, 600)).into_drawing_area();
         root.fill(&WHITE)?;
         
         let mut chart = plotters::chart::ChartBuilder::on(&root)
-            .caption(self.caption + " [点線は平均値]", ("sans-serif", 20).into_font())
+            .caption(format!("{} [点線は平均値]", self.caption), ("sans-serif", 20).into_font())
             .margin(10)
             .x_label_area_size(40)
-            .y_label_area_size(40)
+            .y_label_area_size(60)
             .build_cartesian_2d(
                 (-5..105).with_key_points(vec![0, 20, 40, 60, 80, 100]),
-                self.y_coord,
+                self.derive_y_coord(),
             )?;
         
         chart.configure_mesh()
@@ -59,24 +33,28 @@ impl<Y: AsRangedCoord<Value = f64>> Plotter<Y> {
             .label_style(("sans-serif", 16).into_font())
             .draw()?;
         
-        for values in self.data {
-            let average = values.iter().copied().sum::<f64>() / (values.len() as f64);
-            chart.draw_series(DashedLineSeries::new(
-                (0..100).map(|i| (i, average)),
-                2,
-                1,
-                RED.into(),
-            ))?;
-            chart.draw_series(PointSeries::<_, _, Circle<(i32, f64), i32>, _>::new(
-                (0..100).map(|i| (i, values[i as usize])),
-                2,
-                BLUE
-            ))?;
-        }
+        let average = self.data.iter().copied().sum::<f64>() / (self.data.len() as f64);
+        chart.draw_series(DashedLineSeries::new(
+            (0..100).map(|i| (i, average)),
+            2,
+            1,
+            RED.into(),
+        ))?;
+        chart.draw_series(PointSeries::<_, _, Circle<(i32, f64), i32>, _>::new(
+            (0..100).map(|i| (i, self.data[i as usize])),
+            2,
+            BLUE.filled(),
+        ))?;
         
         root.present()?;
         
         Ok(())
+    }
+    
+    fn derive_y_coord(&self) -> impl AsRangedCoord<Value = f64, CoordDescType: ValueFormatter<f64>> {
+        let min = self.data.iter().copied().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+        let max = self.data.iter().copied().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+        todo!()
     }
     
     fn format_y_label(value: &f64) -> String {

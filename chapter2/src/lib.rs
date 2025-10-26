@@ -5,7 +5,7 @@ mod matrix;
 mod plot;
 
 pub use matrix::{Matrix, Vector};
-pub use plot::{Plotter, PlotterInit, IntoLogRange, BindKeyPoints};
+pub use plot::Plotter;
 
 pub const EPSILON: f64 = 1e-10;
 

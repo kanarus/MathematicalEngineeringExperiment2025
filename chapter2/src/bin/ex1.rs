@@ -41,46 +41,38 @@ fn solve_by_gaussian_elimination<const N: usize>(a: &Matrix<N, N>, b: &Vector<N>
 }
 
 fn plot_100_experiments<const N: usize>(solver: EquationSolver<N>) -> Result<(), Box<dyn std::error::Error>> {
-    use chapter2::{Plotter, PlotterInit, IntoLogRange as _, BindKeyPoints as _};
-    
     let stats: [EquationExperimentStat<N>; 100] = (0..100)
         .map(|_| dbg!(solver.experiment_randomly()))
         .collect::<Vec<_>>()
         .try_into()
         .unwrap();
     
-    let mut p = Plotter::init(PlotterInit {
+    chapter2::Plotter {
         caption: format!("消去法による残差ノルム (n = {N})"),
         y_desc: "residual norm",
-        y_coord: (1e-6..1e-3).log_scale().with_key_points(vec![1e-6, 1e-5, 1e-4, 1e-3, 1e-3]),
-    });
-    p.plot(stats.iter().map(|stat| stat.residual_norm).collect::<Vec<_>>().try_into().unwrap());
-    p.write_into(format!("plot/ex1/n{N}-residual_norm.svg"))?;
+        data: stats.iter().map(|stat| stat.residual_norm).collect::<Vec<_>>().try_into().unwrap(),
+    }.plot_into(format!("plot/ex1/n{N}-residual_norm.svg"))?;
     
-    let mut p = Plotter::init(PlotterInit {
+    chapter2::Plotter {
         caption: format!("消去法による相対誤差 (n = {N})"),
         y_desc: "relative error",
-        y_coord: (1e-6..1e-3).log_scale().with_key_points(vec![1e-6, 1e-5, 1e-4, 1e-3]),
-    });
-    p.plot(stats.iter().map(|stat| stat.relative_error).collect::<Vec<_>>().try_into().unwrap());
-    p.write_into(format!("plot/ex1/n{N}-relative_error.svg"))?;
+        data: stats.iter().map(|stat| stat.relative_error).collect::<Vec<_>>().try_into().unwrap(),
+    }.plot_into(format!("plot/ex1/n{N}-relative_error.svg"))?;
     
-    let mut p = Plotter::init(PlotterInit {
+    chapter2::Plotter {
         caption: format!("消去法による計算時間 (n = {N})"),
         y_desc: "time elapsed (sec.)",
-        y_coord: (1e-3..4.*1e-3),
-    });
-    p.plot(stats.iter().map(|stat| stat.elapsed.as_secs_f64()).collect::<Vec<_>>().try_into().unwrap());
-    p.write_into(format!("plot/ex1/n{N}-time_elapsed.svg"))?;
-
+        data: stats.iter().map(|stat| stat.elapsed.as_secs_f64()).collect::<Vec<_>>().try_into().unwrap(),
+    }.plot_into(format!("plot/ex1/n{N}-time_elapsed.svg"))?;
+    
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<100>))?;
-    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<200>))?;
-    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<400>))?;
-    plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<800>))?;
+    // plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<200>))?;
+    // plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<400>))?;
+    // plot_100_experiments(EquationSolver::new(solve_by_gaussian_elimination::<800>))?;
     Ok(())
 }
 
