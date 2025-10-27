@@ -27,7 +27,19 @@ fn do_gaussian_elimination<const N: usize>(ab: &mut Matrix<N, {N + 1}>) {
 
 fn solve_by_gaussian_elimination<const N: usize>(a: &Matrix<N, N>, b: &Vector<N>) -> Vector<N> where [(); N + 1]: {
     let mut augmented_coefficient_matrix = Matrix::concat(a, b);
-    do_gaussian_elimination(&mut augmented_coefficient_matrix);    
+    do_gaussian_elimination(&mut augmented_coefficient_matrix);
+    /*
+     * rustc-1.92 reports error for
+     * ```
+     * let (a, b): (Matrix<N, N>, Vector<N>) = augmented_coefficient_matrix.into_split_last_column();
+     * ```
+     * as:
+     * ```
+     * mismatched types
+     * expected constant N
+     * found constant chapter2::::matrix::{impl#8}::into_split_last_column::{constant#0} (rustc E0308)
+     * ```
+    */
     back_substitution(
         &Matrix::<N, N>::from_fn(|i, j| augmented_coefficient_matrix[(i, j)]),
         &Vector::<N>::from_fn(|i, _| augmented_coefficient_matrix[(i, N)]),

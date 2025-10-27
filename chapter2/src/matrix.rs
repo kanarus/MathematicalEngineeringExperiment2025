@@ -72,6 +72,17 @@ impl<const N: usize, const M: usize> Matrix<N, M> {
         Matrix::<M, N>::from_fn(|i, j| self[(j, i)])
     }
     
+    pub fn into_split_first_column(self) -> (Vector<N>, Matrix<N, {M - 1}>) {
+        let mut columns = self.columns;
+        let first_column = columns.remove(0);
+        (Vector::<N> { columns: vec![first_column] }, Matrix::<N, {M - 1}> { columns })
+    }
+    pub fn into_split_last_column(self) -> (Matrix<N, {M - 1}>, Vector<N>) {
+        let mut columns = self.columns;
+        let last_column = columns.pop().expect("Matrix must have at least one column to split");
+        (Matrix::<N, {M - 1}> { columns }, Vector::<N> { columns: vec![last_column] })
+    }
+    
     pub fn concat<const L: usize>(a: &Matrix<N, M>, b: &Matrix<N, L>) -> Matrix<N, {M + L}> {
         Matrix::<N, {M + L}>::from_fn(|i, j| {
             if j < M {
