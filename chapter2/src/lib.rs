@@ -2,10 +2,10 @@
 #![feature(generic_const_exprs)]
 
 mod matrix;
-mod plot;
+mod plotter;
 
 pub use matrix::{Matrix, Vector};
-pub use plot::Plotter;
+pub use plotter::Plotter;
 
 pub const EPSILON: f64 = 1e-10;
 

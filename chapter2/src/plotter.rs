@@ -15,33 +15,32 @@ impl Plotter {
         root.fill(&WHITE)?;
         
         let mut chart = plotters::chart::ChartBuilder::on(&root)
-            // .caption(format!("{} (点線は平均値)", self.caption), ("sans-serif", 20).into_font())
-            .margin(10)
-            .x_label_area_size(40)
-            .y_label_area_size(80)
+            .margin(20)
+            .x_label_area_size(60)
+            .y_label_area_size(100)
             .build_cartesian_2d(
                 (-5..105).with_key_points(vec![0, 20, 40, 60, 80, 100]),
                 self.derive_y_coord(),
             )?;
         
         chart.configure_mesh()
+            .y_label_formatter(&Self::format_y_label)
+            .label_style(("sans-serif", 24).into_font())
+            .axis_desc_style(("sans-serif", 24).into_font())
             .x_desc("trials")
             .y_desc(self.y_desc)
-            .y_label_formatter(&Self::format_y_label)
-            .axis_desc_style(("sans-serif", 16).into_font())
-            .label_style(("sans-serif", 16).into_font())
             .draw()?;
         
         let average = self.data.iter().copied().sum::<f64>() / (self.data.len() as f64);
         chart.draw_series(DashedLineSeries::new(
             (-5..105).map(|i| (i, average)),
-            2,
-            1,
-            RED.into(),
+            12,
+            8,
+            RED.stroke_width(3).into(),
         ))?;
         chart.draw_series(PointSeries::<_, _, Circle<(i32, f64), i32>, _>::new(
             (0..100).map(|i| (i, self.data[i as usize])),
-            2,
+            4,
             BLUE.filled(),
         ))?;
         
@@ -93,13 +92,14 @@ impl Plotter {
             let coefficient = (log10 - log10_floor > crate::EPSILON)
                 .then(|| {
                     let value = 10f64.powf(log10 - log10_floor);
-                    if value.fract() < crate::EPSILON {
-                        format!("{}×", value.round() as i32)
+                    let value_round = value.round();
+                    if (value - value_round).abs() < crate::EPSILON {
+                        format!("{}×", value_round as i32)
                     } else {
                         format!("{:.1}×", value)
                     }
                 });
-            let exponent = format!("10⁻{}", (log10_floor.abs() as u32)
+            let exponent = format!("10⁻{}", (log10_floor.abs() as i32)
                 .to_string()
                 .chars()
                 .map(|c| SUPERSCRIPT[c.to_digit(10).unwrap() as usize])
