@@ -227,24 +227,3 @@ impl<const N: usize> DominantEigenvalueSolver<N> {
         }
     }
 }
-
-pub struct AllEigenvaluesSolver<const N: usize> {
-    f: fn(&Matrix<N, N>) -> AllEigenvaluesSolution<N>,
-}
-
-#[derive(Debug)]
-pub struct AllEigenvaluesSolution<const N: usize> {
-    pub eigenvalues: Vector<N>,
-    pub eigenvectors: Matrix<N, N>,
-    pub iteration_count: usize,
-}
-
-#[derive(Debug)]
-pub struct AllEigenvaluesExperimentStat<const N: usize> {
-    pub solution: (Vector<N>, Matrix<N, N>),
-    pub iteration_count: usize,
-    pub elapsed: std::time::Duration,
-    pub reference_solution: (Vector<N>, Matrix<N, N>),
-    pub max_eigenvalue_residual_norm: f64,
-    pub max_eigenvalues_relative_error: f64,
-}
